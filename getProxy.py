@@ -31,14 +31,12 @@ for i in animals:
 print "Successfully Read Animals"
 fp1.close()
 
+rawips=[]
 ips=[]
 ipsreg='<td>\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}<\/td>'
-ips=re.findall(ipsreg,htmlContent)
-# counter=1
-# for i in ips:
-#     print i
-#     print counter
-#     counter+=1
+rawips=re.findall(ipsreg,htmlContent)
+for i in rawips:
+    ips.append(i[4:-5])
 print "Successfully Read IPs"
 
 rawports=[]
@@ -55,3 +53,9 @@ for i in rawports:
 print "Successfully Read Ports"
 # for i in ports2:
 #     print i
+
+fp2 = open("proxylist-Pachong.org",'w')
+i=0
+while i<50:
+    fp2.write(ips[i] + ":" + str(ports[i]) + "\n")
+    i+=1

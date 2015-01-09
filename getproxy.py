@@ -21,6 +21,7 @@ def get_proxy():
     proxyhtml = proxypage.read()
     linkreg = r"href=\"(.+?html)\""
     newlink = re.findall(re.compile(linkreg),proxyhtml)[0]
+    print newlink
     url = 'http://www.mesk.cn'
     newurl = url+newlink
     print newurl

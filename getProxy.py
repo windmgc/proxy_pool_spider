@@ -11,7 +11,7 @@ from multiprocessing import Pool
 
 ## Connection of Redis Databases ##
 RedisIO = redis.StrictRedis(host='localhost', port=6379, charset='utf-8', password='xidian123')
-
+globalProxyList = []
 ## Fetching Latest URL ##
 def fetchLatestURL():
     getProxyUrl = 'http://www.mesk.cn/ip/china/'
@@ -56,18 +56,16 @@ def checkOneProxy(proxyAddress):
     t2=time.time()
     timeUsed=t2-t1
     if (timeUsed-5 < 0):
-        return proxy
-    else:
-        return -1
+        globalProxyList.append(proxyAddress)
 
 if __name__ == '__main__':
     newUrl=fetchLatestURL()
     rawAddress = getLatestProxy(newUrl)
-    pool = Pool()
+    pool = Pool(10)
     pool.map(checkOneProxy,rawAddress)
     pool.close()
     pool.join()
-    for i in pool:
+    for i in globalProxyList:
         print i
     #
     # for i in rawAddress:

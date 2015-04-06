@@ -1,61 +1,74 @@
+# __author__ = 'windmgc'
+## The program is used for get proxy list from  http://mesk.cn ##
+import os
 import urllib2
+import redis
 import re
-# from sgmllib import SGMLParser
+import time
+# import threading
+import random
+from multiprocessing import Pool
 
-# class getProxyList (SGMLParser):
-#     def __init__(self):
-#         SGMLParser.__init__(self)
-#         self.is_td = ""
-#         self.content = []
-#     def start_td(self,attrs):
-#         self.is_td = 1
-#     def end_td(self):
-#         self.is_td = ""
-#     def handle_data(self, text):
-#         if self.is_td == 1:
-#             self.content.append(text)
+## Connection of Redis Databases ##
+RedisIO = redis.StrictRedis(host='localhost', port=6379, charset='utf-8', password='xidian123')
 
-htmlContent = urllib2.urlopen('http://pachong.org/').read()
-print "Successfully Read HTML"
+## Fetching Latest URL ##
+def fetchLatestURL():
+    getProxyUrl = 'http://www.mesk.cn/ip/china/'
+    proxyUrlContent = urllib2.urlopen(getProxyUrl).read()
+    linkReg = r"href=\"(.+?html)\""
+    newUrl = re.findall(re.compile(linkReg),proxyUrlContent)[0]
+    meskAddr = 'http://www.mesk.cn'
+    newUrl = meskAddr + newUrl
+    return newUrl
 
-fp = open("test.txt",'w')
-fp.write(htmlContent)
-fp.close()
+## Read HTML Contents ##
+def getLatestProxy(newUrl):
+    htmlContent = urllib2.urlopen(newUrl).read()
+    print "Successfully Read HTML"
 
-fp1 = open("test.txt",'r')
-fpcontent=fp1.readlines()
-animals=fpcontent[12][31:-10].split(';')
-for i in animals:
-    i=i[4:]
-    exec(i)
-print "Successfully Read Animals"
-fp1.close()
+    ipsreg='<div>\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}:\d{1,5}@HTTP'
+    rawips=re.findall(ipsreg,htmlContent)
+    rawaddress=[]
+    for i in rawips:
+        rawaddress.append(i[5:-5])
 
-rawips=[]
-ips=[]
-ipsreg='<td>\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}<\/td>'
-rawips=re.findall(ipsreg,htmlContent)
-for i in rawips:
-    ips.append(i[4:-5])
-print "Successfully Read IPs"
+    return rawaddress
 
-rawports=[]
-ports=[]
-portsreg='<td><script>\s*.*<\/script><\/td>'
-rawports=re.findall(portsreg,htmlContent)
-# counter=1
-# for i in ports:
-#     print i[26:-16]
-#     print counter
-#     counter+=1
-for i in rawports:
-    exec("ports.append("+i[26:-15]+")")
-print "Successfully Read Ports"
-# for i in ports2:
-#     print i
+def checkOneProxy(proxyAddress):
+    testUrl = "http://www.baidu.com/"
+    testString = "030173"
+    testProxy = urllib2.ProxyHandler({'http':proxyAddress.split('\n')[0]})
+    testOpener = urllib2.build_opener(testProxy)
+    urllib2.install_opener(testOpener)
+    t1=time.time()
+    if(testUrl.find("?")==-1):
+        testUrl=testUrl+'?rnd='+str(random.random())
+    else:
+        testUrl=testUrl+'&rnd='+str(random.random())
+    try:
+        f = urllib2.urlopen(testUrl,timeout=5)
+        s = f.read()
+        pos = s.find(testString)
+    except:
+        pos = -1
+        pass
+    t2=time.time()
+    timeUsed=t2-t1
+    if (timeUsed-5 < 0):
+        return proxy
+    else:
+        return -1
 
-fp2 = open("proxylist-Pachong.org",'w')
-i=0
-while i<50:
-    fp2.write(ips[i] + ":" + str(ports[i]) + "\n")
-    i+=1
+if __name__ == '__main__':
+    newUrl=fetchLatestURL()
+    rawAddress = getLatestProxy(newUrl)
+    pool = Pool()
+    pool.map(checkOneProxy,rawAddress)
+    pool.close()
+    pool.join()
+    for i in pool:
+        print i
+    #
+    # for i in rawAddress:
+    #     RedisIO.hset("proxy_pool",i,0)

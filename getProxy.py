@@ -10,8 +10,9 @@ import random
 from multiprocessing import Pool
 
 ## Connection of Redis Databases ##
-RedisIO = redis.StrictRedis(host='localhost', port=6379, charset='utf-8', password='xidian123')
+RedisIO = redis.StrictRedis(host='localhost', port=6379, charset='utf-8', password='')
 globalProxyList = []
+
 ## Fetching Latest URL ##
 def fetchLatestURL():
     getProxyUrl = 'http://www.mesk.cn/ip/china/'
@@ -38,6 +39,7 @@ def getLatestProxy(newUrl):
 def checkOneProxy(proxyAddress):
     testUrl = "http://www.baidu.com/"
     testString = "030173"
+    global globalProxyList
     testProxy = urllib2.ProxyHandler({'http':proxyAddress.split('\n')[0]})
     testOpener = urllib2.build_opener(testProxy)
     urllib2.install_opener(testOpener)
@@ -55,18 +57,16 @@ def checkOneProxy(proxyAddress):
         pass
     t2=time.time()
     timeUsed=t2-t1
-    if (timeUsed-5 < 0):
-        globalProxyList.append(proxyAddress)
+    if timeUsed-5 < 0:
+        if RedisIO.hexists("proxy_pool", proxyAddress):
+            RedisIO.hset("proxy_pool", proxyAddress, 0)
 
 if __name__ == '__main__':
+    # global globalProxyList
     newUrl=fetchLatestURL()
     rawAddress = getLatestProxy(newUrl)
-    pool = Pool(10)
+    pool = Pool(20)
     pool.map(checkOneProxy,rawAddress)
     pool.close()
     pool.join()
-    for i in globalProxyList:
-        print i
-    #
-    # for i in rawAddress:
-    #     RedisIO.hset("proxy_pool",i,0)
+    print 'Latest proxies have been imported into Redis hash table.'

@@ -1,40 +1,54 @@
+# __author__ = 'windmgc'
+## The program will be running during 24 hours to check the proxy list ##
+import os
 import urllib2
+import redis
 import time
 import random
+from multiprocessing import Pool
 
-target_url="http://www.baidu.com/" #验证代理访问的地址
-target_string="030173"
-target_timeout=3                  #30s
+## Connection of Redis Databases ##
+RedisIO = redis.StrictRedis(host='localhost', port=6379, charset='utf-8', password='')
 
-def check_one_proxy(ipport):
-    global proxy_array
-    global target_url,target_string,target_timeout
-    ip = ipport.split(':')[0]
-    port = ipport.split(':')[1]
-    url = target_url
-    checkstr = target_string
-    timeout = target_timeout
-    proxies = {'http':ip+':'+port}
-    proxy = urllib2.ProxyHandler(proxies)
-    opener = urllib2.build_opener(proxy)
-    urllib2.install_opener(opener)
-    t1 = time.time()
-
-    if(url.find("?")==-1):
-        url=url+'?rnd='+str(random.random())
+## Check one proxy with Baidu.com ##
+def checkOneProxy(proxyAddress):
+    testUrl = "http://www.baidu.com/"
+    testString = "030173"
+    testProxy = urllib2.ProxyHandler({'http':proxyAddress.split('\n')[0]})
+    testOpener = urllib2.build_opener(testProxy)
+    urllib2.install_opener(testOpener)
+    t1=time.time()
+    if(testUrl.find("?")==-1):
+        testUrl=testUrl+'?rnd='+str(random.random())
     else:
-        url=url+'&rnd='+str(random.random())
+        testUrl=testUrl+'&rnd='+str(random.random())
     try:
-        f = urllib2.urlopen(url)
-        s= f.read()
-        pos=s.find(checkstr)
+        f = urllib2.urlopen(testUrl,timeout=3)
+        s = f.read()
+        pos = s.find(testString)
     except:
-        pos=-1
+        pos = -1
         pass
     t2=time.time()
+    timeUsed=t2-t1
+    if timeUsed-3 < 0 and pos != -1:
+        pass
+    else:
+        RedisIO.hincrby("proxy_pool",proxyAddress)
 
-    timeused=t2-t1
-    with open('proxyip1.txt','a+') as f:
-        if (timeused<timeout and pos>0):
-            print ipport
-            f.writelines(ipport+'\n')
+
+if __name__ == '__main__':
+    for i in range(20):
+        proxyPool=RedisIO.hkeys("proxy_pool")
+        pool = Pool(40)
+        pool.map(checkOneProxy,proxyPool)
+        pool.close()
+        pool.join()
+    # count=0
+    # proxyPool=RedisIO.hkeys("proxy_pool")
+    # for i in proxyPool:
+    #     # print i
+    #     if RedisIO.hget("proxy_pool",i) == '0':
+    #         print i
+    #         count = count + 1
+    # print count

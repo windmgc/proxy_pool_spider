@@ -1,1 +1,3 @@
-This is a Proxy Pool used for Storm Cluster.
+这是自动化代理抓取Repo
+由getProxy.py实现代理的自动获取并导入Redis
+由checkProxy.py实现代理的24小时自动检测（T=20min）

@@ -1,5 +1,5 @@
 # __author__ = 'windmgc'
-## The program will be running during 24 hours to check the proxy list ##
+## The program will be running during 24 hours to check the proxy list. ##
 import os
 import urllib2
 import redis

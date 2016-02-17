@@ -8,8 +8,10 @@ import time
 import random
 from multiprocessing import Pool
 
+
 ## Connection of Redis Databases ##
-RedisIO = redis.StrictRedis(host='localhost', port=6379, charset='utf-8', password='xidian123')
+RedisIO = redis.StrictRedis(host='localhost', port=6379, charset='utf-8', password='')
+
 
 ## Clean Proxy and Reset Counter##
 def cleanUp():
@@ -27,6 +29,7 @@ def cleanUp():
         for i in proxyPool:
             RedisIO.hset("proxy_pool",i,"0")
 
+
 ## Fetching Latest URL ##
 def fetchLatestURL():
     getProxyUrl = 'http://www.mesk.cn/ip/china/'
@@ -37,6 +40,7 @@ def fetchLatestURL():
     newUrl = meskAddr + newUrl
     print newUrl
     return newUrl
+
 
 ## Read HTML Contents ##
 def getLatestProxy(newUrl):
@@ -51,30 +55,14 @@ def getLatestProxy(newUrl):
     #     rawaddress.append(i[5:-5])
     return rawips
 
+
 def checkOneProxyExist(proxyAddress):
-    # testUrl = "http://www.baidu.com/"
-    # testProxy = urllib2.ProxyHandler({'http':proxyAddress.split('\n')[0]})
-    # testOpener = urllib2.build_opener(testProxy)
-    # urllib2.install_opener(testOpener)
-    # t1=time.time()
-    # if(testUrl.find("?")==-1):
-    #     testUrl=testUrl+'?rnd='+str(random.random())
-    # else:
-    #     testUrl=testUrl+'&rnd='+str(random.random())
-    # try:
-    #     f = urllib2.urlopen(testUrl,timeout=3)
-    # except:
-    #     pass
-    # t2=time.time()
-    # timeUsed=t2-t1
-    # if timeUsed-3 < 0:
     if int(RedisIO.hexists("proxy_pool", proxyAddress)) == 0:
         RedisIO.hset("proxy_pool", proxyAddress, "0")
-        # print "add"+proxyAddress
 
-if __name__ == '__main__':
+
+def main():
     cleanUp()
-    # global globalProxyList
     newUrl = fetchLatestURL()
     rawAddress = getLatestProxy(newUrl)
     pool = Pool(20)
@@ -82,3 +70,8 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
     print 'Latest proxies have been imported into Redis hash table.'
+
+if __name__ == '__main__':
+    main()
+
+
